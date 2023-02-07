@@ -1,224 +1,329 @@
 #!/usr/bin/env nextflow
 
+indices_file = file(params.indices_file)
+demux_dir = file(params.demux_dir)
+metadata_file = file(params.metadata_file)
+raw_data_R1 = file(params.raw_data.R1)
+raw_data_R2 = file(params.raw_data.R2)
+sample_rename_pattern = file(params.sample_rename_pattern)
+Fw_index = file(params.Fw_index)
+Rv_index = file(params.Rv_index)
+
 setup_ch = Channel.of(params.voyage_id)
 
-if (params.skipDemux) {
+if (params.skip_demux) {
 	setup_ch = Channel.empty()
   skip_demux_ch = Channel.of(params.voyage_id)
 } 
 
 process '00-setup-a' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
     val voyage from setup_ch
     val assay from params.assay
-    val indices_file from params.indices_file
-    val metadata_file from params.metadata_file
-    val raw_data_R1 from params.raw_data.R1
-    val raw_data_R2 from params.raw_data.R2
-    val sample_rename_pattern from params.sample_rename_pattern
-    val Fw_index from params.Fw_index
-    val Rv_index from params.Rv_index
-    val setup_script from params.setup_script
+    val indices_file from indices_file
+    val metadata_file from metadata_file
+    val raw_data_R1 from raw_data_R1
+    val raw_data_R2 from raw_data_R2
+    val sample_rename_pattern from sample_rename_pattern
+    val Fw_index from Fw_index
+    val Rv_index from Rv_index
+
   output:
-    val voyage into demux_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into demux_ch
 
   script:
   """
-  bash $PWD/scripts/$setup_script -p $voyage -w $PWD
-  cp $raw_data_R1 $PWD/00-raw-data/${voyage}_${assay}_R1.fastq.gz
-  cp $raw_data_R2 $PWD/00-raw-data/${voyage}_${assay}_R2.fastq.gz
-  cp $indices_file $PWD/00-raw-data/indices/${voyage}_indices.csv
-  cp $Fw_index $PWD/00-raw-data/indices/${voyage}_${assay}_Fw.fa
-  cp $Rv_index $PWD/00-raw-data/indices/${voyage}_${assay}_Rv.fa
-  cp $sample_rename_pattern $PWD/00-raw-data/indices/Sample_name_rename_pattern_${voyage}_${assay}.txt
-  cp $metadata_file $PWD/06-report/${voyage}_metadata.csv
+  00-setup.sh -p $voyage
+
+  cp $projectDir/$raw_data_R1 ${voyage}_amplicon_analysis/00-raw-data/${voyage}_${assay}_R1.fastq.gz
+  cp $projectDir/$raw_data_R2 ${voyage}_amplicon_analysis/00-raw-data/${voyage}_${assay}_R2.fastq.gz
+  cp $projectDir/$indices_file ${voyage}_amplicon_analysis/00-raw-data/indices/${voyage}_indices.csv
+  cp $projectDir/$Fw_index ${voyage}_amplicon_analysis/${voyage}_${assay}_Fw.fa
+  cp $projectDir/$Rv_index ${voyage}_amplicon_analysis/${voyage}_${assay}_Fw.Rv
+  cp $projectDir/$sample_rename_pattern ${voyage}_amplicon_analysis/Sample_name_rename_pattern_${voyage}_${assay}.txt
+  cp $projectDir/$metadata_file ${voyage}_amplicon_analysis/06-report/${voyage}_metadata.csv
   """
 }
 
-
 process '01-demultiplex' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from demux_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from demux_ch
     val assay from params.assay
     val cores from params.cores
-    val demultiplex_script from params.demultiplex_script
+
   output:
-    val voyage into rename_ch  
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into rename_ch  
   
   """
-  bash $PWD/scripts/$demultiplex_script -v $voyage -a $assay -c $cores -w $PWD
+  01-demultiplex.sh -v $voyage -a $assay -c $cores
   """
 }
 
 process '02-rename_demux' {
+   publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from rename_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from rename_ch
     val assay from params.assay
-    val rename_script from params.rename_script
+
   output:
-    val voyage into tmp_ch_a
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into tmp_ch_a
 
   """
-  bash $PWD/scripts/$rename_script -v $voyage -a $assay -w $PWD
+  02-rename_demux.sh -v $voyage -a $assay
   """
 }
 
 process '00-setup-b' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
     val voyage from skip_demux_ch
     val assay from params.assay
-    val indices_file from params.indices_file
-    val metadata_file from params.metadata_file
-    val demux_dir from params.demux_dir
-    val setup_script from params.setup_script
+    file indices_file from indices_file
+    file metadata_file from metadata_file
+    file demux_dir from demux_dir
 
   output:
-    val voyage into tmp_ch_b
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into tmp_ch_b
 
   """
-  bash $PWD/scripts/$setup_script -p $voyage -w $PWD
-  cp $indices_file $PWD/00-raw-data/indices/${voyage}_indices.csv
-  cp $demux_dir/* $PWD/01-demultiplexed/$assay
+  00-setup.sh -p $voyage
+
+  cp $projectDir/$indices_file ${voyage}_amplicon_analysis/00-raw-data/indices/${voyage}_indices.csv
+  mkdir ${voyage}_amplicon_analysis/01-demultiplexed/$assay
+  cp $projectDir/$demux_dir/* ${voyage}_amplicon_analysis/01-demultiplexed/$assay
+  cp $projectDir/$metadata_file ${voyage}_amplicon_analysis/06-report/${voyage}_metadata.csv
   """
 }
 
-seqkit_ch = (params.skipDemux ? tmp_ch_b : tmp_ch_a)
+seqkit_ch = (params.skip_demux ? tmp_ch_b : tmp_ch_a)
 
 process '03-seqkit_stats' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from seqkit_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from seqkit_ch
     val assay from params.assay
     val cores from params.cores
-    val seqkit_script from params.seqkit_script
+
   output:
-    val voyage into dada2_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into dada2_ch
   
   """
-  bash $PWD/scripts/$seqkit_script -v $voyage -a $assay -c $cores -w $PWD
+  cd ${voyage}_amplicon_analysis
+  touch logs/03-seqkit_stats.log
+  03-seqkit_stats.sh -v $voyage -a $assay -c $cores
   """
 }
 
 process '04-DADA2' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from dada2_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from dada2_ch
     val assay from params.assay
     val option from params.dada_option
     val cores from params.cores
-    val dada2_script from params.dada2_script
+
   output:
-    val voyage into reorg_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into reorg_ch
 
   """
-  Rscript $PWD/scripts/$dada2_script -v $voyage -a $assay -o $option -c $cores -w $PWD
+  cd ${voyage}_amplicon_analysis
+  export ANALYSIS=""
+  Rscript /opt/amplicon_pipeline/04-DADA2.R -v $voyage -a $assay -p $option -c $cores
   """
 }
 
 process 'Reorganise' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from reorg_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from reorg_ch
     val assay from params.assay
-    val reorganise_script from params.reorganise_script
+
   output:
-    val voyage into lulu_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into lulu_ch
 
   """
-  bash $PWD/scripts/$reorganise_script $voyage $assay $PWD
+  cd ${voyage}_amplicon_analysis
+  RS_Reorganise.sh $voyage $assay
   """
 }
 
 process '05-run_LULU' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from lulu_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from lulu_ch
     val assay from params.assay
-    val lulu_script from params.lulu_script
+
   output:
-    val voyage into blast_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into blast_ch
 
   """
-  bash $PWD/scripts/$lulu_script -v $voyage -a $assay -w $PWD
+  cd ${voyage}_amplicon_analysis
+  05-run_LULU.sh -v $voyage -a $assay
   """
 }
 
 process '06-run_blast' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from blast_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from blast_ch
     val assay from params.assay
     val database from params.database_option
     val cores from params.cores
-    val blast_script from params.blast_script
+
   output:
-    val voyage into lca_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into lca_ch
 
   """
-  bash $PWD/scripts/$blast_script -v $voyage -a $assay -d $database -c $cores -w $PWD
+  cd ${voyage}_amplicon_analysis
+  touch logs/06-run_blast.log
+  touch logs/06-run_blast.nt.log
+  touch logs/06-run_blast_nt_database_information.log
+  06-run_blast.sh -v $voyage -a $assay -d $database -c $cores
   """
 }
 
 process '07-run_LCA' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from lca_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from lca_ch
     val assay from params.assay
     val database from params.database_option
-    val lca_script from params.lca_script
+
   output:
-    val voyage into lca_filt_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into lca_filt_ch
 
   """
-  bash $PWD/scripts/$lca_script -v $voyage -a $assay -d $database -w $PWD
+  cd ${voyage}_amplicon_analysis
+  touch logs/07-run_LCA.log
+  touch logs/07-run_LCA_taxdump_linecounts.log
+  touch logs/07-run_LCA_taxdump_md5sums.log
+  07-run_LCA.sh -v $voyage -a $assay -d $database
   """
 }
 
 process '07.1-LCA_filter_nt_only' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from lca_filt_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from lca_filt_ch
     val assay from params.assay
-    val lca_filter_script from params.lca_filter_script
+
   output:
-    val voyage into decontam_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into decontam_ch
 
   """
-  Rscript $PWD/scripts/$lca_filter_script -v $voyage -a $assay -w $PWD
+  cd ${voyage}_amplicon_analysis
+  export ANALYSIS=""
+  Rscript /opt/amplicon_pipeline/07.1-LCA_filter_nt_only.R -v $voyage -a $assay
   """
 }
 
 process '08-Decontam' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from decontam_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from decontam_ch
     val assay from params.assay
     val database from params.database_option
-    val decontam_script from params.decontam_script
+
   output:
-    val voyage into phyloseq_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into phyloseq_ch
 
   """
-  Rscript $PWD/scripts/$decontam_script -v $voyage -a $assay -o $database -w $PWD
+  cd ${voyage}_amplicon_analysis
+  export ANALYSIS=""
+  Rscript /opt/amplicon_pipeline/08-Decontam.R -v $voyage -a $assay -o $database
   """
 }
 
 process '09-create_phyloseq_object' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from phyloseq_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from phyloseq_ch
     val assay from params.assay
     val database from params.database_option
     val cores from params.cores
-    val phyloseq_script from params.phyloseq_script
+
   output:
-    val voyage into report_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into report_ch
 
   """
-  Rscript $PWD/scripts/$phyloseq_script -v $voyage -a $assay -o $database -c $cores -w $PWD
+  cd ${voyage}_amplicon_analysis
+  export ANALYSIS=""
+  Rscript /opt/amplicon_pipeline/09-create_phyloseq_object.R -v $voyage -a $assay -o $database -c $cores
   """
 }
 
 process '10-amplicon_report' {
+  publishDir(
+    path: params.publish_dir, 
+    mode: params.publish_dir_mode,
+  )
+
   input:
-    val voyage from report_ch
+    tuple val(voyage), path("${voyage}_amplicon_analysis") from report_ch
     val assay from params.assay
     val seq_run from params.sequencing_run_id
-    val report_script from params.report_script
+
+  output:
+    tuple val(voyage), path("${voyage}_amplicon_analysis") into final_ch
 
   """
-  bash $PWD/scripts/$report_script -v $voyage -a $assay -r $seq_run -w $PWD
+  cd ${voyage}_amplicon_analysis
+  10-amplicon_report.sh -v $voyage -a $assay -r $seq_run
   """
 }
 
+//MAYBE HAVE FINAL PROCESS THAT MOVES EVERYTHING TO $PWD
