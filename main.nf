@@ -104,10 +104,10 @@ process '00-setup-b' {
     """
     00-setup.sh -p $project
 
-    cp $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
+    cp -P $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
     mkdir ${project}_amplicon_analysis/01-demultiplexed/$assay
-    cp $projectDir/$demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
-    cp $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
+    cp -P $projectDir/$demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
+    cp -P $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
     """
 }
 
