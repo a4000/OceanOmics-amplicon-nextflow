@@ -3,20 +3,18 @@
 indices_file = file(params.indices_file)
 demux_dir = file(params.demux_dir)
 metadata_file = file(params.metadata_file)
-raw_data_R1 = file(params.raw_data.R1)
-raw_data_R2 = file(params.raw_data.R2)
-sample_rename_pattern = file(params.sample_rename_pattern)
-Fw_index = file(params.Fw_index)
-Rv_index = file(params.Rv_index)
+
 assay_list = params.assay?.tokenize(',')
 assay_ch = Channel.fromList(assay_list)
 assay_ch.into {assay_ch_a; assay_ch_b}
-setup_ch = Channel.value(params.project_id)
 
 if (params.skip_demux) {
 	setup_ch = Channel.empty()
   skip_demux_ch = Channel.value(params.project_id)
-} 
+} else {
+  setup_ch = Channel.value(params.project_id)
+  skip_demux_ch = Channel.empty()
+}
 
 process '00-setup-a' {
   publishDir(
@@ -27,13 +25,8 @@ process '00-setup-a' {
   input:
     val project from setup_ch
     val assay from assay_ch_a
-    val indices_file from indices_file
-    val metadata_file from metadata_file
-    val raw_data_R1 from raw_data_R1
-    val raw_data_R2 from raw_data_R2
-    val sample_rename_pattern from sample_rename_pattern
-    val Fw_index from Fw_index
-    val Rv_index from Rv_index
+    file indices_file from indices_file
+    file metadata_file from metadata_file
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into demux_ch
@@ -42,13 +35,13 @@ process '00-setup-a' {
     """
     00-setup.sh -p $project
 
-    cp $projectDir/$raw_data_R1 ${project}_amplicon_analysis/00-raw-data/${project}_${assay}_R1.fastq.gz
-    cp $projectDir/$raw_data_R2 ${project}_amplicon_analysis/00-raw-data/${project}_${assay}_R2.fastq.gz
-    cp $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
-    cp $projectDir/$Fw_index ${project}_amplicon_analysis/00-raw-data/indices/${project}_${assay}_Fw.fa
-    cp $projectDir/$Rv_index ${project}_amplicon_analysis/00-raw-data/indices/${project}_${assay}_Fw.Rv
-    cp $projectDir/$sample_rename_pattern ${project}_amplicon_analysis/00-raw-data/indices/Sample_name_rename_pattern_${project}_${assay}.txt
-    cp $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
+    cp -P $projectDir/*${assay}*R1*fastq.gz ${project}_amplicon_analysis/00-raw-data/
+    cp -P $projectDir/*${assay}*R2*fastq.gz ${project}_amplicon_analysis/00-raw-data/
+    cp -P $projectDir/${project}_${assay}_Fw.fa ${project}_amplicon_analysis/00-raw-data/indices/
+    cp -P $projectDir/${project}_${assay}_Rv.fa ${project}_amplicon_analysis/00-raw-data/indices/
+    cp -P $projectDir/Sample_name_rename_pattern_${project}_${assay}.txt ${project}_amplicon_analysis/00-raw-data/indices/
+    cp -P $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
+    cp -P $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
     """
 }
 
@@ -192,7 +185,6 @@ if (params.skip_lulu) {
   lulu_in_ch = Channel.empty()
 }
 
-
 process '05-run_LULU' {
   publishDir(
     path: "${project}_${assay}_results",
@@ -335,7 +327,7 @@ process '09-create_phyloseq_object' {
 process '10-amplicon_report' {
   publishDir(
     path: "${project}_${assay}_results",
-    mode: params.publish_dir_mode,
+    mode: params.publish_dir_mode_final,
   )
 
   input:
