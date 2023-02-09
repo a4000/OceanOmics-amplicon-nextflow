@@ -35,13 +35,13 @@ process '00-setup-a' {
     """
     00-setup.sh -p $project
 
-    cp -P $projectDir/*${assay}*R1*fastq.gz ${project}_amplicon_analysis/00-raw-data/
-    cp -P $projectDir/*${assay}*R2*fastq.gz ${project}_amplicon_analysis/00-raw-data/
-    cp -P $projectDir/${project}_${assay}_Fw.fa ${project}_amplicon_analysis/00-raw-data/indices/
-    cp -P $projectDir/${project}_${assay}_Rv.fa ${project}_amplicon_analysis/00-raw-data/indices/
-    cp -P $projectDir/Sample_name_rename_pattern_${project}_${assay}.txt ${project}_amplicon_analysis/00-raw-data/indices/
-    cp -P $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
-    cp -P $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
+    cp $projectDir/*${assay}*R1*fastq.gz ${project}_amplicon_analysis/00-raw-data/
+    cp $projectDir/*${assay}*R2*fastq.gz ${project}_amplicon_analysis/00-raw-data/
+    cp $projectDir/${project}_${assay}_Fw.fa ${project}_amplicon_analysis/00-raw-data/indices/
+    cp $projectDir/${project}_${assay}_Rv.fa ${project}_amplicon_analysis/00-raw-data/indices/
+    cp $projectDir/Sample_name_rename_pattern_${project}_${assay}.txt ${project}_amplicon_analysis/00-raw-data/indices/
+    cp $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
+    cp $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
     """
 }
 
@@ -104,10 +104,10 @@ process '00-setup-b' {
     """
     00-setup.sh -p $project
 
-    cp -P $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
+    cp $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
     mkdir ${project}_amplicon_analysis/01-demultiplexed/$assay
-    cp -P $projectDir/$demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
-    cp -P $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
+    cp $projectDir/$demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
+    cp $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
     """
 }
 

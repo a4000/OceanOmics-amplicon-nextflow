@@ -72,37 +72,23 @@ Alternatively, they can be set in the nextflow.config file.
 The parameters in the config file are listed below.
 
 
-### Mandatory parameters
+### Parameters to skip steps
 
 `skip_demux` is set to true by default because the demultiplex step in this pipeline is unique to OceanOmics.
 
 `skip_lulu` is set to false by default, but can be set to true if you wish to skip the LULU step.
 
-`publish_dir_mode` is set to "symlink" by default.
-Other publish mode options can be viewed [here](https://www.nextflow.io/docs/latest/process.html#publishdir).
 
-`publish_dir_mode_final` is set to "move" by default. This is the publish mode of the final process in the pipeline.
-I chose this setting as the default so that the your results directories will have the actual results files instead of symbolic links.
+### Mandatory parameters
 
 `project_id` the ID of your project.
 
 `assay` is the assays used in your project. 
 If you are using multiple assays, please separate the assays with commas (e.g., "16S,MiFish").
 
-`sequencing_run_id` can be left blank if you don't have a sequencing run ID.
-
-`cores` is the maximum number of cores used during processes that allow multithreading.
-The max number of cores used in this pipeline will be 'cores' * number of assays 
-(e.g., ``cores` = 50 and two assays means this pipeline can use up to 100 cores).
-
 `metadata_file` should be a csv file with 'Sample ID' as the first column
 
 `indices_file` should be a csv file containing an 'assay' column and the indices for all samples
-
-`dada_option` can be set to "TRUE" for pooled analysis, "FALSE" for independant analysis, or "pseudo" for pseudo analysis.
-More information about these settings can be found [here](https://benjjneb.github.io/dada2/pool.html).
-
-`database_option` is set to "nt" by default, but can be set to "custom".
 
 `path_to_db` should be the absolute path to your database (nt or custom)
 
@@ -116,13 +102,34 @@ More information about these settings can be found [here](https://benjjneb.githu
 ### Mandatory files if not using the --skip_demux option
 
 These files must all exist in the directory conaining the main.nf and nextflow.config files.
-These files can be the actual files or symbolic links.
+These files can't be symbolic links.
 
 - Fw index file with the name "${project_id}_${assay}_Fw.fa" (e.g., ABV4_16S_Fw.fa)
 - Rv index file with the name "${project_id}_${assay}_Rv.fa" (e.g., ABV4_16S_Rv.fa)
 - Sample rename pattern file with the name "Sample_name_rename_pattern_${project_id}_${assay}.txt" (e.g., Sample_name_rename_pattern_ABV4_16S.txt)
 - Raw data read 1 with the name "*${assay}*R1*fastq.gz" (e.g., AbrolhosV4_MiFish_Fish16S_S1_R1_001.fastq.gz)
 - Raw data read 2 with the name "*${assay}*R2*fastq.gz" (e.g., AbrolhosV4_MiFish_Fish16S_S1_R2_001.fastq.gz)
+
+
+### Optional parameters
+
+`sequencing_run_id` can be left blank if you don't have a sequencing run ID.
+
+`cores` is set to 50 by default and represents the number of cores used during a single processes that allow multithreading.
+The max number of cores used in this pipeline will be 'cores' * number of assays 
+(e.g., `cores` = 50 and two assays means this pipeline can use up to 100 cores).
+
+`publish_dir_mode` is set to "symlink" by default.
+Other publish mode options can be viewed [here](https://www.nextflow.io/docs/latest/process.html#publishdir).
+
+`publish_dir_mode_final` is set to "move" by default. This is the publish mode of the final process in the pipeline.
+I chose this setting as the default so that the your results directories will have the actual results files instead of symbolic links.
+
+`dada_option` is set to "TRUE" by default.
+This parameter can be set to "TRUE" for pooled analysis, "FALSE" for independant analysis, or "pseudo" for pseudo analysis.
+More information about these settings can be found [here](https://benjjneb.github.io/dada2/pool.html).
+
+`database_option` is set to "nt" by default, but can be set to "custom".
 
 
 ## Aditional notes
