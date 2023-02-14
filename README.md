@@ -62,7 +62,7 @@ nextflow run main.nf
 ```
 
 The first time you run the pipeline on your system will be slow because the docker image will need to be build.
-The docker image will only need to be built once.
+The docker image will only need to be built once on your system.
 
 
 ## nextflow.config
@@ -125,21 +125,31 @@ Other publish mode options can be viewed [here](https://www.nextflow.io/docs/lat
 `publish_dir_mode_final` is set to "move" by default. This is the publish mode of the final process in the pipeline.
 I chose this setting as the default so that the your results directories will have the actual results files instead of symbolic links.
 
+`database_option` is set to "nt" by default, but can be set to "custom".
+
 `dada_option` is set to "TRUE" by default.
 This parameter can be set to "TRUE" for pooled analysis, "FALSE" for independant analysis, or "pseudo" for pseudo analysis.
 More information about these settings can be found [here](https://benjjneb.github.io/dada2/pool.html).
 
-`database_option` is set to "nt" by default, but can be set to "custom".
+`merge_pairs_min_overlap` is set to 12 by default.
+This is the minumum overlap required for merging reads.
+
+`merge_pairs_max_mismatch` is set to 0 by default. 
+This is the maximum mismatches allowed in overlap region.
 
 
 ## Aditional notes
 
-It's worth noting that the config file has `resume` set to true as default. This causes nextflow to try to resume previous pipeline runs if they exist. This can be commented out if you would like to disable this feature.
+- It's worth noting that the config file has `resume` set to true as default. This causes nextflow to try to resume previous pipeline runs if they exist. This can be commented out if you would like to disable this feature.
 
-You can remove information from nextflow about the last pipeline run with the command
+- You can remove information from nextflow about the last pipeline run with the command
 ```
 nextflow clean -f
 ```
+
+- This amplicon pipeline only works on paired-end reads, though compatability with single-end reads is planned in the future.
+
+- This amplicon pipeline only works with a minimum of three samples.
 
 
 ## Authors and contributors

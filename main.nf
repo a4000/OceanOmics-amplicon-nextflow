@@ -144,6 +144,8 @@ process '04-DADA2' {
     tuple val(project), val(assay), path("${project}_amplicon_analysis") from dada2_ch
     val option from params.dada_option
     val cores from params.cores
+    val min_overlap from params.merge_pairs_min_overlap
+    val max_mismatch from params.merge_pairs_max_mismatch
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into reorg_in_ch
@@ -151,7 +153,7 @@ process '04-DADA2' {
   script:
     """
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
-    Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c $cores
+    Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c $cores -m $min_overlap -M $max_mismatch
     """
 }
 
