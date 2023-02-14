@@ -61,7 +61,7 @@ To run this pipeline from the same directory as main.nf and nextflow.config, you
 nextflow run main.nf
 ```
 
-The first time you run the pipeline on your system will be slow because the docker image will need to be build.
+The first time you run the pipeline on your system will be slow because the docker image will need to be built.
 The docker image will only need to be built once on your system.
 
 
@@ -86,11 +86,11 @@ The parameters in the config file are listed below.
 `assay` is the assays used in your project. 
 If you are using multiple assays, please separate the assays with commas (e.g., "16S,MiFish").
 
-`metadata_file` should be a csv file with 'Sample ID' as the first column
+`metadata_file` should be a csv file with 'Sample ID' as the first column.
 
-`indices_file` should be a csv file containing an 'assay' column and the indices for all samples
+`indices_file` should be a csv file containing the columns 'assay', 'index_seq_Fw', 'index_seq_Rv', 'full_primer_seq_Fw', and 'full_primer_seq_Rv' for all samples.
 
-`path_to_db` should be the absolute path to your database (nt or custom)
+`path_to_db` should be the absolute path to your database (nt or custom).
 
 
 ### Mandatory parameters if using the --skip_demux option
@@ -144,7 +144,7 @@ More information about these settings can be found [here](https://benjjneb.githu
 
 ## Aditional notes
 
-- It's worth noting that the config file has `resume` set to true as default. This causes nextflow to try to resume previous pipeline runs if they exist. This can be commented out if you would like to disable this feature.
+- It's worth noting that the config file has `resume` set to true as default. This causes nextflow to try to resume previous pipeline runs if they exist. This can be commented out in the config file if you would like to disable this feature.
 
 - You can remove information from nextflow about the last pipeline run with the command
 ```
