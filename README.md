@@ -127,15 +127,19 @@ I chose this setting as the default so that the your results directories will ha
 
 `database_option` is set to "nt" by default, but can be set to "custom".
 
-`dada_option` is set to "TRUE" by default.
-This parameter can be set to "TRUE" for pooled analysis, "FALSE" for independant analysis, or "pseudo" for pseudo analysis.
-More information about these settings can be found [here](https://benjjneb.github.io/dada2/pool.html).
-
 `merge_pairs_min_overlap` is set to 12 by default.
 This is the minumum overlap required for merging reads.
 
 `merge_pairs_max_mismatch` is set to 0 by default. 
 This is the maximum mismatches allowed in overlap region.
+
+`dada_option` is set to "TRUE" by default.
+This parameter can be set to "TRUE" for pooled analysis, "FALSE" for independant analysis, or "pseudo" for pseudo analysis.
+More information about these settings can be found [here](https://benjjneb.github.io/dada2/pool.html).
+
+`merge_pairs_min_overlap` is the minimum overlap required for merging reads.
+
+`merge_pairs_max_mismatch` is the maximum mismatches allowed in the overlap region.
 
 
 ## Aditional notes
