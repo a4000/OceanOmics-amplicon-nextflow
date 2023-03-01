@@ -1,34 +1,58 @@
 #!/bin/bash
 
-#..........................................................................................
-# Create QC stats for the demultiplexed data
-#..........................................................................................
+# USAGE:
+#   bash 03-seqkit_stats.sh -v <project/voyage ID> \
+#                           -a <assay; if multiple assays, then use flag like this: -a 16S -a MiFish> \
+#                           -c <number of cores, default 50>
 
+voyageID=
+assay=
+cores=50
 
-# Get options from main.nf
 #..........................................................................................
-while getopts v:a:c:w: flag
+usage()
+{
+          printf "Usage: $0 -v <voyageID>\t<string>\n\t\t\t -a <assay; use the flag multiple times for multiple assays>\t<string>\n\t\t\t -c <number of cores; default: 50>\n\n";
+          exit 1;
+}
+while getopts v:a:c: flag
 do
     case "${flag}" in
         v) voyageID=${OPTARG};;
         a) assay+=("$OPTARG");;
         c) cores=${OPTARG};;
-        w) wd=${OPTARG};;
+        *) usage;;
     esac
 done
+if [ "${voyageID}" == ""  ]; then usage; fi
+#if [ "${assay}" == ""  ]; then usage; fi
 
-
-# Activate amplicon conda environment
-#..........................................................................................
+# QC for all data
 eval "$(conda shell.bash hook)"
 conda activate amplicon
 
+ROOT_DIR=$(pwd)
 
-# Loop through each assay (e.g., '16S' and 'MiFish')
-#..........................................................................................
+# log the commands
+set -x
+echo 'Writing logs to logs/03-seqkit_stats.log'
+exec 1>logs/03-seqkit_stats.log 2>&1
+
+# User feedback
+echo "Main directory is:"
+echo $ROOT_DIR
+
+# Loop over assays and voyages for rename
 for a in ${assay[@]}
-do   
+do
+    # get around small bug where a is empty, leading to nonsense commands
+    if [[ -z "${a}" ]];
+    then
+       continue
+    fi
+    
+    echo ${ROOT_DIR}/01-demultiplexed/${a}/
+    
     # Create stats and save to file
-    #..........................................................................................
-    seqkit stats -j ${cores} -b ${wd}/01-demultiplexed/${a}/*.fq.gz -a > ${wd}/02-QC/Sample_statistics_${voyageID}_${a}.txt
+    seqkit stats -j ${cores} -b ${ROOT_DIR}/01-demultiplexed/${a}/*.fq.gz -a > 02-QC/Sample_statistics_${voyageID}_${a}.txt
 done

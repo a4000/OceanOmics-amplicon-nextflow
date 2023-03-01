@@ -8,13 +8,12 @@ usage()
           printf "Usage: $0 -v <voyageID>\t<string>\n\t\t\t -a <assay>\t<string>\n\n";
           exit 1;
 }
-while getopts v:a:w: flag
+while getopts v:a: flag
 do
 
         case "${flag}" in
             v) voyageID=${OPTARG};;
             a) assay=${OPTARG};;
-            w) wd=${OPTARG};;
             *) usage;;
         esac
 done
@@ -25,12 +24,19 @@ if [ "${voyageID}" == ""  ]; then usage; fi
 eval "$(conda shell.bash hook)"
 conda activate blast-2.12.0
 
-mkdir -p ${wd}/04-LULU
-mkdir -p ${wd}/04-LULU/database
+# For the containerised version: if the ANALYSIS path is present,
+# change to the ANALYSIS directory
+if [ -n "$ANALYSIS" ]
+   then cd $ANALYSIS;
+fi
 
-ln -s ${wd}/03-dada2/*.fa ${wd}/04-LULU/database/
 
-cd ${wd}/04-LULU/database
+mkdir -p 04-LULU
+mkdir -p 04-LULU/database
+
+ln -s $(pwd)/03-dada2/*.fa 04-LULU/database/
+
+cd 04-LULU/database
 
 #First produce a blastdatabase with the OTUs
 makeblastdb -in ${voyageID}_${assay}.fa -parse_seqids -dbtype nucl
@@ -43,4 +49,4 @@ rm -rf *${assay}*.n*
   
 # create lulu asv input table
 cd ../
-cat ../03-dada2/${voyageID}_final_table_${assay}.tsv | tr '\t' ',' > $(pwd)/${voyageID}_${assay}_lulu_table.csv
+cat ../03-dada2/${voyageID}_final_table_${assay}.tsv | tr '\t' ',' > ${voyageID}_${assay}_lulu_table.csv

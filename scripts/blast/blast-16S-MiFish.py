@@ -67,7 +67,6 @@ def main():
                         help=f'Output filename, defaulting to "{OUT_PATH}".')
     parser.add_argument('--database', metavar='DB', type=str, choices=['16S', 'MiFish'],
                         help='''Select either the 16S or the MiFish database.''')
-                
     args = parser.parse_args()
     dada2_file = args.dada2_file
     out_path = args.out_path
@@ -167,7 +166,7 @@ def process_blast_output(out_file, database):
                 taxa_list.append(tax)
 
             else:
-                tax = hit.split('|')[2].split('(')[0].strip()
+                tax = hit.split('|')[2].split('([')[0].strip()
                 taxa_list.append(tax)
 
         blast_mifish['taxa'] = taxa_list

@@ -1,59 +1,111 @@
 #!/bin/bash
 
-#..........................................................................................
 # Lowest Common Ancestor (LCA) analysis to determine most accurate taxa assignments for each ASV
 # This is the script to run the LCA scripts from eDNAFlow and loop through the assays
-#..........................................................................................
 
-
-# Get options from main.nf
+voyageID=
+assay=
+database=
 #..........................................................................................
-while getopts v:a:d:w: flag 
+usage()
+{
+
+          printf "Usage: $0 -v <voyageID>\t<string>\n\t\t\t -a <assay; use flag multiple times for multiple assays>\t<string>\n\t\t\t -d <database; nt, ocom or custom>\t <string>\n\n";
+          exit 1;
+
+}
+while getopts v:a:d: flag
 do
     case "${flag}" in
         v) voyageID=${OPTARG};;
         a) assay+=("$OPTARG");;
         d) database=${OPTARG};;
-        w) wd=${OPTARG};;
+        *) usage;;
     esac
 done
+if [ "${voyageID}" == ""  ]; then usage; fi
+#if [ "${assay[@]}" == ""  ]; then usage; fi
+if [ "${database}" == ""  ]; then usage; fi
 
-
-# Activate pytaxonkit conda environment
-#..........................................................................................
+#activate blast conda environment
 eval "$(conda shell.bash hook)"
 conda activate pytaxonkit
 
+# log the commands
+set -x
+echo 'Writing logs to logs/07-run_LCA.log'
+exec 1>logs/07-run_LCA.log 2>&1
 
-# If the user used the 'nt' database
-#..........................................................................................
 if [ "$database" == "nt" ];
 then
-    # Loop through each assay (e.g., '16S' and 'MiFish')
-    #..........................................................................................
     for a in ${assay[@]}
     do
-        python ${wd}/scripts/LCA/runAssign_collapsedTaxonomy.py \
-        ${wd}/03-dada2/${voyageID}_${a}_lca_input.tsv \
-        ${wd}/05-taxa/blast_out/${voyageID}_${a}_nt.tsv \
-        100 98 1 \
-        ${wd}/05-taxa/LCA_out/${voyageID}_${a}_nt_LCA.tsv
+        # get around small bug where a is empty, leading to nonsense commands
+        if [[ -z "${a}" ]];
+        then
+            continue
+        fi
+
+        echo  running LCA analysis on ${voyageID} ${a} NCBI nt database
+
+        # For the containerised version: if the CODE path is present,
+        # change to the CODE directory
+        if [ -n "$CODE" ]
+            then cd $CODE;
+        fi
+
+        python LCA/runAssign_collapsedTaxonomy.py \
+               ../03-dada2/${voyageID}_${a}_lca_input.tsv \
+               ../05-taxa/blast_out/${voyageID}_${a}_nt.tsv \
+               100 98 1 \
+               ../05-taxa/LCA_out/${voyageID}_${a}_nt_LCA.tsv
     done
 fi
 
 
-# If the user used a custom database
-#..........................................................................................
+if [ "$database" == "ocom" ];
+then
+
+for a in ${assay[@]}
+  do
+        echo  running LCA analysis on ${voyageID} ${a} OceanOmics database
+
+        python scripts/LCA/runAssign_collapsedTaxonomy.py \
+        03-dada2/${voyageID}_${a}_lca_input.tsv \
+        05-taxa/blast_out/${voyageID}_${a}_ocom.tsv \
+        100 98 1 \
+        05-taxa/LCA_out/${voyageID}_${a}_ocom_LCA.tsv
+  done
+
+fi
+
+
 if [ "$database" == "custom" ];
 then
-    # Loop through each assay (e.g., '16S' and 'MiFish')
-    #..........................................................................................
+    # load python and taxonkit environment
+    eval "$(conda shell.bash hook)"
+    conda activate pytaxonkit
+
     for a in ${assay[@]}
     do
-        python ${wd}/scripts/LCA/runAssign_collapsedTaxonomy.py \
-        ${wd}/03-dada2/${voyageID}_${a}_lca_input.tsv \
-        ${wd}/05-taxa/blast_out/${voyageID}_${a}_blast_results.tsv \
-        100 98 1 \
-        ${wd}/05-taxa/LCA_out/${voyageID}_${a}_LCA.tsv
-  done
+        # get around small bug where a is empty, leading to nonsense commands
+        if [[ -z "${a}" ]];
+        then
+            continue
+        fi
+
+        echo  running LCA analysis on ${voyageID} ${a} custom database
+
+        # For the containerised version: if the CODE path is present,
+        # change to the CODE directory
+        if [ -n "$CODE" ]
+            then cd $CODE;
+        fi
+
+        python LCA/runAssign_collapsedTaxonomy.py \
+               ../03-dada2/${voyageID}_${a}_lca_input.tsv \
+               ../05-taxa/blast_out/${voyageID}_${a}_blast_results.tsv \
+               100 98 1 \
+               ../05-taxa/LCA_out/${voyageID}_${a}_LCA.tsv
+    done
 fi

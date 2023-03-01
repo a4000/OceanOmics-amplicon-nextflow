@@ -1,62 +1,119 @@
 #!/bin/bash
+set -e
+set -o pipefail # see http://redsymbol.net/articles/unofficial-bash-strict-mode/
+# set -u does not work well with SLURM, conda, or HPC module systems IME
 
-#..........................................................................................
-# Setup the directory structure
-#..........................................................................................
+# USAGE:
+# bash 00-setup.sh -v <project/voyage ID>
 
+projectID=
 
-# Get options from main.nf
-#..........................................................................................
+usage()
+{   
+    printf "Usage: $0 -p <projectID>\t<string>\n\n";
+    exit 1;
+}
 while getopts p:w: flag
 do
     case "${flag}" in
         p) projectID=${OPTARG};;
         w) wd=${OPTARG};;
+        *) usage;;
     esac
 done
+if [ "${projectID}" == ""  ]; then usage; fi
+
+# from https://stackoverflow.com/a/246128
+# where does the setup script live?
+# need to know this for more robust copying of all scripts later in the script
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+
+# Create a new directory based on input
+#...............................................................................................
+mkdir ${projectID}_amplicon_analysis
+
+# Enter the folder and make it a datalad container
+cd ${projectID}_amplicon_analysis
+pwd
+echo 'Preparing data repository...'
+echo ''
+
+# Finished
+echo ''
+echo ''
+echo 'data repository created...'
+echo 'path is:' $(pwd)
 
 
 # Set up the directory structure
-#..........................................................................................
-mkdir -p ${wd}/00-raw-data/indices
-mkdir -p ${wd}/01-demultiplexed
-mkdir -p ${wd}/02-QC
-mkdir -p ${wd}/03-dada2/QC_plots
-mkdir -p ${wd}/03-dada2/tmpfiles
-mkdir -p ${wd}/03-dada2/errorModel
-mkdir -p ${wd}/04-LULU
-mkdir -p ${wd}/05-taxa/blast_out
-mkdir -p ${wd}/05-taxa/LCA_out
-mkdir -p ${wd}/06-report
+#...............................................................................................
+mkdir -p 00-raw-data/indices \
+         01-demultiplexed \
+         02-QC \
+         03-dada2/QC_plots \
+         03-dada2/tmpfiles \
+         03-dada2/errorModel \
+         04-LULU \
+         05-taxa/blast_out \
+         05-taxa/LCA_out \
+         06-report \
+         databases \
+         scripts \
+         logs
 
 
 # Place a README.md in every folder
-#..........................................................................................
-touch ${wd}/README.md
+#...............................................................................................
+touch README.md
 
-echo "# Step:" >> ${wd}/README.md
-echo "# Analyst:" >> ${wd}/README.md
-echo "# Data locations:" >> ${wd}/README.md
-echo "# Script used:" >> ${wd}/README.md
-echo "# Software version:" >> ${wd}/README.md
-echo "# Problems encountered:" >> ${wd}/README.md
+echo "# Step:" >> README.md
+echo "# Analyst:" >> README.md
+echo "# Data locations:" >> README.md
+echo "# Script used:" >> README.md
+echo "# Software version:" >> README.md
+echo "# Problems encountered:" >> README.md
 
-parallel cp ${wd}/README.md ::: ${wd}/01-demultiplexed \
-      ${wd}/02-QC \
-      ${wd}/03-dada2 \
-      ${wd}/04-LULU \
-      ${wd}/05-taxa \
-      ${wd}/06-report
+parallel cp README.md ::: 01-demultiplexed \
+                          02-QC \
+                          03-dada2 \
+                          04-LULU \
+                          05-taxa \
+                          06-report
 
 
 # Remove the readme file from the main folder structure
-#..........................................................................................
-rm ${wd}/README.md
+#...............................................................................................
+rm README.md
 
 
 # Create a general README for this project
-#..........................................................................................
-touch ${wd}/README.md
-echo "# Project:" >> ${wd}/README.md
-echo "# Analyst:" >> ${wd}/README.md
-echo "# Overview:" >> ${wd}/README.md
+#...............................................................................................
+touch README.md
+echo "# Project:" >> README.md
+echo "# Analyst:" >> README.md
+echo "# Overview:" >> README.md
+
+cp -r ${wd}/scripts/* scripts
+
+
+# Set up the blast database
+#...............................................................................................
+
+echo 'Setting up the BLAST database'
+cp ${wd}/resources/* databases/
+gunzip databases/12S.v0.7.16S.v0.2.fasta.gz
+
+eval "$(conda shell.bash hook)"
+conda activate blast-2.12.0
+makeblastdb -dbtype nucl -in databases/12S.v0.7.16S.v0.2.fasta -parse_seqids -taxid_map databases/12S.v0.7.16S.v0.2.taxids.txt
+
+
+# Finished
+#...............................................................................................
+echo "Finished setting up analysis directory!"
+echo
+echo "Directory name is `pwd`"
+echo
+tree -d
+#...............................................................................................
