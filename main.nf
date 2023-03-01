@@ -33,7 +33,7 @@ process '00-setup-a' {
 
   script:
     """
-    00-setup.sh -p $project -w $PWD
+    bash $PWD/scripts/00-setup.sh -p $project -w $PWD
 
     cp $projectDir/*${assay}*R1*fastq.gz ${project}_amplicon_analysis/00-raw-data/
     cp $projectDir/*${assay}*R2*fastq.gz ${project}_amplicon_analysis/00-raw-data/
