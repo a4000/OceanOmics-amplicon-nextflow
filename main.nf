@@ -33,11 +33,7 @@ process '00-setup-a' {
 
   script:
     """
-<<<<<<< HEAD
     00-setup.sh -p $project -w $PWD
-=======
-    00-setup.sh -p $project
->>>>>>> 23e61c0d9ae5cdc21e74c3ce25da4498cb4edd17
 
     cp $projectDir/*${assay}*R1*fastq.gz ${project}_amplicon_analysis/00-raw-data/
     cp $projectDir/*${assay}*R2*fastq.gz ${project}_amplicon_analysis/00-raw-data/
@@ -106,11 +102,7 @@ process '00-setup-b' {
 
   script:
     """
-<<<<<<< HEAD
     bash $PWD/scripts/00-setup.sh -p $project -w $PWD
-=======
-    00-setup.sh -p $project
->>>>>>> 23e61c0d9ae5cdc21e74c3ce25da4498cb4edd17
 
     cp $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
     mkdir ${project}_amplicon_analysis/01-demultiplexed/$assay
@@ -161,12 +153,8 @@ process '04-DADA2' {
   script:
     """
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
-<<<<<<< HEAD
     Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c $cores -m $min_overlap -x $max_mismatch
     #Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c $cores
-=======
-    Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c $cores -m $min_overlap -M $max_mismatch
->>>>>>> 23e61c0d9ae5cdc21e74c3ce25da4498cb4edd17
     """
 }
 
@@ -328,10 +316,7 @@ process '09-create_phyloseq_object' {
     tuple val(project), val(assay), path("${project}_amplicon_analysis") from phyloseq_ch
     val database from params.database_option
     val cores from params.cores
-<<<<<<< HEAD
     val optimise_tree from params.optimise_tree
-=======
->>>>>>> 23e61c0d9ae5cdc21e74c3ce25da4498cb4edd17
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into report_ch
@@ -339,11 +324,7 @@ process '09-create_phyloseq_object' {
   script:
     """
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
-<<<<<<< HEAD
     Rscript /opt/amplicon_pipeline/09-create_phyloseq_object.R -v $project -a $assay -o $database -c $cores -t $optimise_tree
-=======
-    Rscript /opt/amplicon_pipeline/09-create_phyloseq_object.R -v $project -a $assay -o $database -c $cores
->>>>>>> 23e61c0d9ae5cdc21e74c3ce25da4498cb4edd17
     """
 }
 
@@ -362,10 +343,6 @@ process '10-amplicon_report' {
 
   script:
     """
-<<<<<<< HEAD
-    # This section is commented out because the 10-amplicon_report.sh
-    # script still needs to be modified to work properly in Nextflow
-
     #cd ${project}_amplicon_analysis
     #if [ -z $seq_run ]
     #then
@@ -373,9 +350,7 @@ process '10-amplicon_report' {
     #else
     #  10-amplicon_report.sh -v $project -a $assay -r $seq_run
     #fi
-=======
-    cd ${project}_amplicon_analysis
-    10-amplicon_report.sh -v $project -a $assay -r $seq_run
->>>>>>> 23e61c0d9ae5cdc21e74c3ce25da4498cb4edd17
+
+    # This script is commented out because is still needs to be modified for Nextflow
     """
 }
