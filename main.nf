@@ -323,6 +323,7 @@ process '10-amplicon_report' {
 
   script:
     """
+    cd ${project}_amplicon_analysis
     export CODE="/opt/amplicon_pipeline/"
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
     if [ -z $seq_run ]
