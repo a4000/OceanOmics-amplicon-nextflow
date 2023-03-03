@@ -124,7 +124,7 @@ process '03-seqkit_stats' {
     val cores from params.cores
 
   output:
-    tuple val(project), val(assay), path("${project}_amplicon_analysis") into dada2_ch
+    tuple val(project), val(assay), path("${project}_amplicon_analysis") into dada2_in_ch
   
   script:
     """
@@ -141,48 +141,27 @@ process '04-DADA2' {
   )
 
   input:
-    tuple val(project), val(assay), path("${project}_amplicon_analysis") from dada2_ch
+    tuple val(project), val(assay), path("${project}_amplicon_analysis") from dada2_in_ch
     val option from params.dada_option
     val cores from params.cores
     val min_overlap from params.merge_pairs_min_overlap
     val max_mismatch from params.merge_pairs_max_mismatch
+    val trim_side from params.trim_side
+    val trim_R1 from params.trim_R1
+    val trim_R2 from params.trim_R2
+    val single_end from params.single_end
 
   output:
-    tuple val(project), val(assay), path("${project}_amplicon_analysis") into reorg_in_ch
+    tuple val(project), val(assay), path("${project}_amplicon_analysis") into dada2_out_ch
 
   script:
     """
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
-    Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c $cores -m $min_overlap -x $max_mismatch
-    #Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c $cores
+    Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c $cores -m $min_overlap -x $max_mismatch  -s $trim_side -o $trim_R1 -t $trim_R2 -i $single_end
     """
 }
 
-process 'Reorganise' {
-  publishDir(
-    path: "${project}_${assay}_results",
-    mode: params.publish_dir_mode,
-  )
-
-  input:
-    tuple val(project), val(assay), path("${project}_amplicon_analysis") from reorg_in_ch
-
-  output:
-    tuple val(project), val(assay), path("${project}_amplicon_analysis") into reorg_out_ch
-
-  script:
-    """
-    cd ${project}_amplicon_analysis
-    #Reorganise.sh $project $assay
-    touch logs/reorganise.log
-    mkdir -p 01-demultiplexed/$assay/Controls
-    [ ! -f 01-demultiplexed/$assay/*EB* ] || mv 01-demultiplexed/$assay/*EB* 01-demultiplexed/$assay/Controls 2>>logs/reorganise.log
-    [ ! -f 01-demultiplexed/$assay/*FC* ] || mv 01-demultiplexed/$assay/*FC* 01-demultiplexed/$assay/Controls 2>>logs/reorganise.log
-    [ ! -f 01-demultiplexed/$assay/*WC* ] || mv 01-demultiplexed/$assay/*WC* 01-demultiplexed/$assay/Controls 2>>logs/reorganise.log
-    """
-}
-
-reorg_out_ch.into {skip_lulu_ch; lulu_in_ch}
+dada2_out_ch.into {skip_lulu_ch; lulu_in_ch}
 
 if (params.skip_lulu) {
   lulu_in_ch = Channel.empty()
@@ -295,6 +274,7 @@ process '08-Decontam' {
   input:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") from decontam_ch
     val database from params.database_option
+    val control_grep_patterns from params.control_grep_patterns
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into phyloseq_ch
@@ -302,7 +282,7 @@ process '08-Decontam' {
   script:
     """
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
-    Rscript /opt/amplicon_pipeline/08-Decontam.R -v $project -a $assay -o $database
+    Rscript /opt/amplicon_pipeline/08-Decontam.R -v $project -a $assay -o $database -c $control_grep_patterns
     """
 }
 
@@ -343,14 +323,13 @@ process '10-amplicon_report' {
 
   script:
     """
-    #cd ${project}_amplicon_analysis
-    #if [ -z $seq_run ]
-    #then
-    #  10-amplicon_report.sh -v $project -a $assay
-    #else
-    #  10-amplicon_report.sh -v $project -a $assay -r $seq_run
-    #fi
-
-    # This script is commented out because is still needs to be modified for Nextflow
+    export CODE="/opt/amplicon_pipeline/"
+    export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
+    if [ -z $seq_run ]
+    then
+      10-amplicon_report.sh -v $project -a $assay
+    else
+      10-amplicon_report.sh -v $project -a $assay -r $seq_run
+    fi
     """
 }
