@@ -13,11 +13,10 @@ usage()
     printf "Usage: $0 -p <projectID>\t<string>\n\n";
     exit 1;
 }
-while getopts p:w: flag
+while getopts p: flag
 do
     case "${flag}" in
         p) projectID=${OPTARG};;
-        w) wd=${OPTARG};;
         *) usage;;
     esac
 done
@@ -94,14 +93,14 @@ echo "# Project:" >> README.md
 echo "# Analyst:" >> README.md
 echo "# Overview:" >> README.md
 
-cp -r ${wd}/scripts/* scripts
+cp -r ../scripts/* scripts
 
 
 # Set up the blast database
 #...............................................................................................
 
 echo 'Setting up the BLAST database'
-cp ${wd}/resources/* databases/
+cp ../resources/* databases/
 gunzip databases/12S.v0.7.16S.v0.2.fasta.gz
 
 eval "$(conda shell.bash hook)"

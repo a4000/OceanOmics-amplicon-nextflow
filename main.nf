@@ -1,8 +1,9 @@
 #!/usr/bin/env nextflow
 
-indices_file = file(params.indices_file)
 demux_dir = file(params.demux_dir)
 metadata_file = file(params.metadata_file)
+scripts_dir = file(params.scripts_dir)
+resources_dir = file(params.resources_dir)
 
 assay_list = params.assay?.tokenize(',')
 assay_ch = Channel.fromList(assay_list)
@@ -25,23 +26,23 @@ process '00-setup-a' {
   input:
     val project from setup_ch
     val assay from assay_ch_a
-    file indices_file from indices_file
     file metadata_file from metadata_file
+    file scripts_dir from scripts_dir
+    file resources_dir from resources_dir
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into demux_ch
 
   script:
     """
-    bash $PWD/scripts/00-setup.sh -p $project -w $PWD
+    bash $PWD/scripts/00-setup.sh -p $project
 
     cp $projectDir/*${assay}*R1*fastq.gz ${project}_amplicon_analysis/00-raw-data/
     cp $projectDir/*${assay}*R2*fastq.gz ${project}_amplicon_analysis/00-raw-data/
     cp $projectDir/${project}_${assay}_Fw.fa ${project}_amplicon_analysis/00-raw-data/indices/
     cp $projectDir/${project}_${assay}_Rv.fa ${project}_amplicon_analysis/00-raw-data/indices/
     cp $projectDir/Sample_name_rename_pattern_${project}_${assay}.txt ${project}_amplicon_analysis/00-raw-data/indices/
-    cp $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
-    cp $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
+    cp $metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
     """
 }
 
@@ -53,7 +54,6 @@ process '01-demultiplex' {
 
   input:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") from demux_ch
-    val cores from params.cores
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into rename_ch  
@@ -61,7 +61,7 @@ process '01-demultiplex' {
   script:
     """
     cd ${project}_amplicon_analysis
-    01-demultiplex.sh -v $project -a $assay -c $cores
+    01-demultiplex.sh -v $project -a $assay -c ${task.cpus}
     """
 }
 
@@ -93,21 +93,25 @@ process '00-setup-b' {
   input:
     val project from skip_demux_ch
     val assay from assay_ch_b
-    file indices_file from indices_file
     file metadata_file from metadata_file
     file demux_dir from demux_dir
+    file scripts_dir from scripts_dir
+    file resources_dir from resources_dir
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into tmp_ch_b
 
   script:
     """
-    bash $PWD/scripts/00-setup.sh -p $project -w $PWD
+    #bash $PWD/scripts/00-setup.sh -p $project -w $PWD
+    bash $PWD/scripts/00-setup.sh -p $project
 
-    cp $projectDir/$indices_file ${project}_amplicon_analysis/00-raw-data/indices/${project}_indices.csv
     mkdir ${project}_amplicon_analysis/01-demultiplexed/$assay
-    cp $projectDir/$demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
-    cp $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
+    #cp $projectDir/$demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
+    #cp $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
+
+    cp $demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
+    cp $metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
     """
 }
 
@@ -121,7 +125,6 @@ process '03-seqkit_stats' {
 
   input:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") from seqkit_ch
-    val cores from params.cores
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into dada2_in_ch
@@ -130,7 +133,7 @@ process '03-seqkit_stats' {
     """
     cd ${project}_amplicon_analysis
     touch logs/03-seqkit_stats.log
-    03-seqkit_stats.sh -v $project -a $assay -c $cores
+    03-seqkit_stats.sh -v $project -a $assay -c ${task.cpus}
     """
 }
 
@@ -143,7 +146,6 @@ process '04-DADA2' {
   input:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") from dada2_in_ch
     val option from params.dada_option
-    val cores from params.cores
     val min_overlap from params.merge_pairs_min_overlap
     val max_mismatch from params.merge_pairs_max_mismatch
     val trim_side from params.trim_side
@@ -157,7 +159,7 @@ process '04-DADA2' {
   script:
     """
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
-    Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c $cores -m $min_overlap -x $max_mismatch  -s $trim_side -o $trim_R1 -t $trim_R2 -i $single_end
+    Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o $trim_R1 -t $trim_R2 -i $single_end
     """
 }
 
@@ -198,7 +200,6 @@ process '06-run_blast' {
   input:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") from blast_ch
     val database from params.database_option
-    val cores from params.cores
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into lca_in_ch
@@ -210,7 +211,7 @@ process '06-run_blast' {
     touch logs/06-run_blast.nt.log
     touch logs/06-run_blast_nt_database_information.log
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
-    06-run_blast.sh -v $project -a $assay -d $database -c $cores
+    06-run_blast.sh -v $project -a $assay -d $database -c ${task.cpus}
     """
 }
 
@@ -295,7 +296,6 @@ process '09-create_phyloseq_object' {
   input:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") from phyloseq_ch
     val database from params.database_option
-    val cores from params.cores
     val optimise_tree from params.optimise_tree
 
   output:
@@ -304,7 +304,7 @@ process '09-create_phyloseq_object' {
   script:
     """
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
-    Rscript /opt/amplicon_pipeline/09-create_phyloseq_object.R -v $project -a $assay -o $database -c $cores -t $optimise_tree
+    Rscript /opt/amplicon_pipeline/09-create_phyloseq_object.R -v $project -a $assay -o $database -c ${task.cpus} -t $optimise_tree
     """
 }
 
