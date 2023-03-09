@@ -103,13 +103,9 @@ process '00-setup-b' {
 
   script:
     """
-    #bash $PWD/scripts/00-setup.sh -p $project -w $PWD
     bash $PWD/scripts/00-setup.sh -p $project
 
     mkdir ${project}_amplicon_analysis/01-demultiplexed/$assay
-    #cp $projectDir/$demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
-    #cp $projectDir/$metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
-
     cp $demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
     cp $metadata_file ${project}_amplicon_analysis/06-report/${project}_metadata.csv
     """
@@ -159,7 +155,16 @@ process '04-DADA2' {
   script:
     """
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
-    Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o $trim_R1 -t $trim_R2 -i $single_end
+    #Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o $trim_R1 -t $trim_R2 -i $single_end
+    
+    if [ $assay == "16S" ]
+    do
+      Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o 20 -t 22 -i $single_end
+    fi
+    if [ $assay == "MiFish" ]
+    do
+      Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o 21 -t 27 -i $single_end
+    fi
     """
 }
 
