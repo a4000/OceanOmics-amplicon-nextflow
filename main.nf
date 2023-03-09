@@ -157,11 +157,11 @@ process '04-DADA2' {
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
     #Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o $trim_R1 -t $trim_R2 -i $single_end
     
-    if [ $assay == "16S" ]
+    if [[ $assay == 16S ]]
     do
       Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o 20 -t 22 -i $single_end
     fi
-    if [ $assay == "MiFish" ]
+    if [[ $assay == MiFish ]]
     do
       Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o 21 -t 27 -i $single_end
     fi
