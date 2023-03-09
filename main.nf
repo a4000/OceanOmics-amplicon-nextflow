@@ -35,7 +35,7 @@ process '00-setup-a' {
 
   script:
     """
-    bash $PWD/scripts/00-setup.sh -p $project
+    bash $projectDir/scripts/00-setup.sh -p $project
 
     cp $projectDir/*${assay}*R1*fastq.gz ${project}_amplicon_analysis/00-raw-data/
     cp $projectDir/*${assay}*R2*fastq.gz ${project}_amplicon_analysis/00-raw-data/
@@ -103,7 +103,7 @@ process '00-setup-b' {
 
   script:
     """
-    bash $PWD/scripts/00-setup.sh -p $project
+    bash $projectDir/scripts/00-setup.sh -p $project
 
     mkdir ${project}_amplicon_analysis/01-demultiplexed/$assay
     cp $demux_dir/*$assay* ${project}_amplicon_analysis/01-demultiplexed/$assay
