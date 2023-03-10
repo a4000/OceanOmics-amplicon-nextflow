@@ -322,6 +322,7 @@ process '10-amplicon_report' {
   input:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") from report_ch
     val seq_run from params.sequencing_run_id
+    val database from params.database_option
 
   output:
     tuple val(project), val(assay), path("${project}_amplicon_analysis") into final_ch
@@ -333,9 +334,9 @@ process '10-amplicon_report' {
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
     if [ -z $seq_run ]
     then
-      10-amplicon_report.sh -v $project -a $assay
+      10-amplicon_report.sh -v $project -a $assay -d $database
     else
-      10-amplicon_report.sh -v $project -a $assay -r $seq_run
+      10-amplicon_report.sh -v $project -a $assay -d $database -r $seq_run
     fi
     """
 }
