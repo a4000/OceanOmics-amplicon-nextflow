@@ -145,8 +145,6 @@ process '04-DADA2' {
     val min_overlap from params.merge_pairs_min_overlap
     val max_mismatch from params.merge_pairs_max_mismatch
     val trim_side from params.trim_side
-    val trim_R1 from params.trim_R1
-    val trim_R2 from params.trim_R2
     val single_end from params.single_end
 
   output:
@@ -156,7 +154,7 @@ process '04-DADA2' {
     """
     export ANALYSIS="/mnt/scratch/${project}_amplicon_analysis"
     #Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o $trim_R1 -t $trim_R2 -i $single_end
-    
+
     if [[ $assay == 16S ]]
     then
       Rscript /opt/amplicon_pipeline/04-DADA2.R -v $project -a $assay -p $option -c ${task.cpus} -m $min_overlap -x $max_mismatch  -s $trim_side -o 20 -t 22 -i $single_end
