@@ -86,11 +86,43 @@ The parameters in the config file are listed below.
 `assay` is the assays used in your project. 
 If you are using multiple assays, please separate the assays with commas (e.g., "16S,MiFish").
 
-`metadata_file` should be a csv file with 'Sample ID' as the first column.
+`metadata_file` should be a csv file with 'Sample ID' as a column.
 
-`indices_file` should be a csv file containing the columns 'assay', 'index_seq_Fw', 'index_seq_Rv', 'full_primer_seq_Fw', and 'full_primer_seq_Rv' for all samples.
+`scripts_dir` directory to the scripts directory cloned from the Github repo.
 
-`path_to_db` should be the absolute path to your database (nt or custom).
+`resources_dir` directory to the resources directory cloned from the Github repo.
+
+`sequencing_run_id` can be left blank if you don't have a sequencing run ID.
+
+`publish_dir_mode` is set to "symlink" by default.
+Other publish mode options can be viewed [here](https://www.nextflow.io/docs/latest/process.html#publishdir).
+
+`publish_dir_mode_final` is set to "move" by default. This is the publish mode of the final process in the pipeline.
+I chose this setting as the default so that the your results directories will have the actual results files instead of symbolic links.
+
+`database_option` is set to "ocom" by default, other options include "nt" and "custom", but those options haven't been tested yet.
+
+`dada_option` is set to "TRUE" by default.
+This parameter can be set to "TRUE" for pooled analysis, "FALSE" for independant analysis, or "pseudo" for pseudo analysis.
+More information about these settings can be found [here](https://benjjneb.github.io/dada2/pool.html).
+
+`merge_pairs_min_overlap` is set to 12 by default.
+This is the minumum overlap required for merging reads.
+
+`merge_pairs_max_mismatch` is set to 0 by default. 
+This is the maximum mismatches allowed in overlap region.
+
+`optimise_tree` is set to false by default.
+This will optimise the phylogenetic tree produced in the phyloseq object (Warning: this option can be slow).
+
+`control_grep_patterns`
+This is the patterns used to label the control samples. Please separate with commas (e.g., "WC,FC,EB").
+
+`trim_side` 
+Trim on the left or right side of the reads
+
+`single_end` set to false by default.
+Set this to true if your reads are single end.
 
 
 ### Mandatory parameters if using the --skip_demux option
@@ -111,35 +143,38 @@ These files can't be symbolic links.
 - Raw data read 2 with the name "*${assay}*R2*fastq.gz" (e.g., AbrolhosV4_MiFish_Fish16S_S1_R2_001.fastq.gz)
 
 
-### Optional parameters
+### Index files
 
-`sequencing_run_id` can be left blank if you don't have a sequencing run ID.
+This is the head output of a Fw index file
+```
+>16S-41F
+TCGCCTTA
+>16S-42F
+CTAGTACG
+>16S-43F
+TTCTGCCT
+>16S-44F
+GCTCAGGA
+>16S-45F
+AGGAGTCC
+```
 
-`cores` is set to 50 by default and represents the number of cores used during a single processes that allow multithreading.
-The max number of cores used in this pipeline will be 'cores' * number of assays 
-(e.g., `cores` = 50 and two assays means this pipeline can use up to 100 cores).
 
-`publish_dir_mode` is set to "symlink" by default.
-Other publish mode options can be viewed [here](https://www.nextflow.io/docs/latest/process.html#publishdir).
+### Sample rename pattern file
 
-`publish_dir_mode_final` is set to "move" by default. This is the publish mode of the final process in the pipeline.
-I chose this setting as the default so that the your results directories will have the actual results files instead of symbolic links.
-
-`database_option` is set to "nt" by default, but can be set to "custom".
-
-`merge_pairs_min_overlap` is set to 12 by default.
-This is the minumum overlap required for merging reads.
-
-`merge_pairs_max_mismatch` is set to 0 by default. 
-This is the maximum mismatches allowed in overlap region.
-
-`dada_option` is set to "TRUE" by default.
-This parameter can be set to "TRUE" for pooled analysis, "FALSE" for independant analysis, or "pseudo" for pseudo analysis.
-More information about these settings can be found [here](https://benjjneb.github.io/dada2/pool.html).
-
-`merge_pairs_min_overlap` is the minimum overlap required for merging reads.
-
-`merge_pairs_max_mismatch` is the maximum mismatches allowed in the overlap region.
+This is the head output of a sample rename pattern file
+```
+16S-41F-16S-57R.R[12].fq.gz RS1_CL_L1_1_16S.#1.fq.gz
+16S-42F-16S-57R.R[12].fq.gz RS1_CL_L2_4_16S.#1.fq.gz
+16S-43F-16S-57R.R[12].fq.gz RS1_CL_S1_2_16S.#1.fq.gz
+16S-44F-16S-57R.R[12].fq.gz RS1_CL_S2_5_16S.#1.fq.gz
+16S-45F-16S-57R.R[12].fq.gz RS1_CL_S4_3_16S.#1.fq.gz
+16S-46F-16S-57R.R[12].fq.gz RS1_IM_L2_1_16S.#1.fq.gz
+16S-47F-16S-57R.R[12].fq.gz RS1_IM_L3_4_16S.#1.fq.gz
+16S-48F-16S-57R.R[12].fq.gz RS1_IM_S2_2_16S.#1.fq.gz
+16S-49F-16S-57R.R[12].fq.gz RS1_IM_S3_5_16S.#1.fq.gz
+16S-50F-16S-57R.R[12].fq.gz RS1_ME_L1_3_16S.#1.fq.gz
+```
 
 
 ## Aditional notes
@@ -150,8 +185,6 @@ More information about these settings can be found [here](https://benjjneb.githu
 ```
 nextflow clean -f
 ```
-
-- This amplicon pipeline only works on paired-end reads, though compatability with single-end reads is planned in the future.
 
 - This amplicon pipeline only works with a minimum of three samples.
 
